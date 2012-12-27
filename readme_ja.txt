@@ -1,4 +1,5 @@
-emacs-keepass
+keepass-emacs
+http://code.google.com/p/keepass-emacs/
 
 概要:
 emacsからKeePassを利用するためのインターフェースです。
@@ -8,12 +9,13 @@ HMACを利用すると平文のパスワードはELispからアクセスでき�
 機能:
 + GnusのHMACベースの認証方式(rfc2104-hash)に対応しています。
 + KeePass本体と同様にSecureデスクトップをサポートしています。
-  KeePassデータベースのパスワードをキーロガーなどのスパイウェアから保護します。
+  KeePassデータベースのパスワードをキーロガーなどのスパイウェ
+  アから保護します。
 
 必要な物:
-GNU Emacs(Win64版) (ダイナミックライブラリサポート)
-KeePass 2.20.1 (コンパイル済みdllはバージョンに非常に敏感です)
-https://github.com/langmartin/site-lisp/blob/master/srfi-2.el
++ GNU Emacs(Win64版) (ダイナミックライブラリサポート)
++ KeePass 2.20.1 (コンパイル済みdllはバージョンに非常に敏感です)
++ https://github.com/langmartin/site-lisp/blob/master/srfi-2.el
 
 インストール:
 0 KeePassをインストールします。KeePass.exeを
@@ -25,7 +27,6 @@ https://github.com/langmartin/site-lisp/blob/master/srfi-2.el
 3 初期化ファイル(.emacs)に以下を記述します
   (add-to-list 'after-load-alist
                '(rfc2104 (require 'keepass)))
-
 
 利用法:
 Gnusで以下の形式の文字列をパスワードとしてあたえます。
