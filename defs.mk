@@ -2,7 +2,7 @@ OBJS=		dllmain.obj keepass.obj AssemblyInfo.obj
 NAME=		keepassdll
 DEFS=		
 LIBS=		$(LIBS) user32.lib ole32.lib Oleaut32.lib Ws2_32.lib imm32.lib
-DEBUG=		DBG
+#DEBUG=		DBG
 LINKFLAGS=	-nologo -DLL -manifest -incremental:no
 
 !ifdef DEBUG

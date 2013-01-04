@@ -16,6 +16,8 @@ HMACを利用すると平文のパスワードはELispからアクセスでき�
 + GNU Emacs(Win64版) (ダイナミックライブラリサポート)
 + KeePass 2.20.1 (コンパイル済みdllはバージョンに非常に敏感です)
 + https://github.com/langmartin/site-lisp/blob/master/srfi-2.el
++ GMAILを使用する場合はパイプ対応版OpenSSLを用意してください。
+  https://gist.github.com/4443189
 
 インストール:
 0 KeePassをインストールします。KeePass.exeを
@@ -27,6 +29,9 @@ HMACを利用すると平文のパスワードはELispからアクセスでき�
 3 初期化ファイル(.emacs)に以下を記述します
   (add-to-list 'after-load-alist
                '(rfc2104 (require 'keepass)))
+  (add-to-list 'after-load-alist
+	     '(imap
+	       (require 'keepass)))
 
 利用法:
 Gnusで以下の形式の文字列をパスワードとしてあたえます。
@@ -36,7 +41,9 @@ keepass:keepassデータベースファイル名?グループ0/グループ1/エ
 ~/.authinfo
 machine localhost login username password keepass:~/Database.kdbx?Database/eMail/UserName=username@localhost port imap
 注) 1行/1ホストで記述
-
+カスタムフィールドに格納したパスワードを指定できます。
+GMAILなど、CRAM-MD5認証に対応していない場合に有用です。
+machine localhost login username password keepass:~/Database.kdbx?Database/eMail/UserName=username@localhost#field-name port 993
 
 オブジェクト:
 keepass-groupオブジェクトとkeepass-entryオブジェクトを実装しています。

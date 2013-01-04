@@ -151,7 +151,6 @@ Database/General/title=Sample1
 (defadvice imap-login-auth
   (around keepass-imap-login-auth activate)
   "adviced by keepass."
-  (message "in advice")
   (let ((ok (keepass-login-auth
 	     imap-username imap-password
 	     (lambda (user password)
