@@ -552,6 +552,11 @@ DLLEXPORT char *get_entry_field(void *entry, const char *name,
 				size_t *allocated,
 				void *(*allocator)(size_t))
 {
+    if (entry == NULL)
+      return NULL;
+    if (name == NULL)
+      name = "Password";
+
     KeePassLib::PwEntry^ e = fromvoidptr<KeePassLib::PwEntry^>(entry);
     System::Text::RegularExpressions::Regex^ re =
 	gcnew System::Text::RegularExpressions::Regex(
@@ -574,11 +579,18 @@ DLLEXPORT char *get_entry_field(void *entry, const char *name,
     return ret;
 }
 
-DLLEXPORT char *get_entry_hmac(void *entry, enum hmac_mech mech,
+DLLEXPORT char *get_entry_hmac(void *entry, const char *field,
+			       enum hmac_mech mech,
 			       const unsigned char *data, size_t leng,
 			       size_t *allocated,
 			       void *(*allocator)(size_t))
 {
+    if (field == NULL)
+      field = "Password";
+
+    if (entry == NULL || field == NULL || data == NULL)
+      return NULL;
+
     array<System::Byte>^ bdata = gcnew array<System::Byte>(leng);
     {
 	pin_ptr<unsigned char> p = &bdata[0];
@@ -587,7 +599,7 @@ DLLEXPORT char *get_entry_hmac(void *entry, enum hmac_mech mech,
     
     KeePassLib::Security::ProtectedString^ p
 	= fromvoidptr<KeePassLib::PwEntry^>(entry)
-	->Strings->Get("Password");
+	->Strings->Get(asString(field));
     if (p == nullptr)
       return NULL;
 

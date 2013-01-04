@@ -406,7 +406,8 @@ DLLEXPORT char *get_entry_field(void *entry, const char *name,
 				void *(*allocator)(size_t));
 
 enum hmac_mech;
-DLLEXPORT char *get_entry_hmac(void *entry, enum hmac_mech mech,
+DLLEXPORT char *get_entry_hmac(void *entry, const char *field,
+			       enum hmac_mech mech,
 			       const unsigned char *data, size_t leng,
 			       size_t *allocated,
 			       void *(*allocator)(size_t));

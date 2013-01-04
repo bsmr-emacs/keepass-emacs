@@ -476,8 +476,10 @@ Lisp_Object binaryp;
      size_t allocated;
 
      CHECK_KEEPASS_OBJ(entry, Qkeepass_entry);
-     CHECK_STRING(field);
-     fld = get_entry_field(kp_obj->kp_obj, SDATA(field),
+     if (!NILP(field))
+       CHECK_STRING(field);
+     fld = get_entry_field(kp_obj->kp_obj, 
+			   NILP(field) ? NULL : SDATA(field),
 			   SDATA(kp_obj->visible_fields),
 			   !NILP(binaryp), &allocated, xmalloc);
      if (fld == NULL)
@@ -488,12 +490,15 @@ Lisp_Object binaryp;
 }
 
 DEFUN("keepass-entry-hmac", 
-      Fkeepass_entry_hmac, Skeepass_entry_hmac, 3, 3, 0,
+      Fkeepass_entry_hmac, Skeepass_entry_hmac, 4, 4, 0,
       doc:/* computes the message authentication code for DATA
 using the hash function MECHANISM and the password which is stored in ENTRY as key.
+PASSWORD-FIELD is the field name of key for HMAC. if PASSWORD-FIELD is nil,
+\"Password\" would be used.
 MECHA is one of 'md5, 'ripemd160, 'sha1, 'sha256, 'sha384 or 'sha512.*/)
-(entry, mechanism, data)
+(entry, password_field, mechanism, data)
 Lisp_Object entry;
+Lisp_Object password_field;
 Lisp_Object mechanism;
 Lisp_Object data;
 {
@@ -503,18 +508,23 @@ Lisp_Object data;
      size_t allocated;
      Lisp_Object obj;
 
+     if (!NILP(password_field))
+       CHECK_STRING(password_field);
      CHECK_KEEPASS_OBJ(entry, Qkeepass_entry);
      CHECK_STRING(data);
      CHECK_SYMBOL(mechanism);
 
      mechanism = Fassq(mechanism, Vsupported_mech_alist);
-     if (NILP(mechanism)) 
+     if (NILP(mechanism))
        error("unsupported mechanism");
 
      p = get_entry_hmac(
-	 kp_obj->kp_obj, XINT(XCDR(mechanism)),
+	 kp_obj->kp_obj, 
+	 NILP(password_field) ? NULL : SDATA(password_field),
+	 XINT(XCDR(mechanism)),
 	 SDATA(data), SBYTES(data),
 	 &allocated, xmalloc);
+
      obj = (allocated > 0)
 	 ? make_unibyte_string(p, allocated)
 	 : Qnil;

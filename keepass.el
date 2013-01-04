@@ -28,6 +28,8 @@
 
 (require 'url-util)
 (require 'srfi-2)
+(require 'rfc2104)
+(require 'imap)
 
 (defun keepass-parse-entry-spec (str)
 "parse STR into entry-spec.
@@ -55,27 +57,114 @@ Database/General/title=Sample1
 
 (defvar keepass-db-cache nil)
 
-(defun keepass-hmac-urn (str mech data)
-  (if (string-match "^keepass:\\(.*\\.kdbx?\\)\\?\\(.+\\)" str)
+(defun keepass-subsetp (list1 list2)
+  (not 
+   (member nil
+	   (mapcar (lambda (x)
+		     (member x list2))
+		   list1))))
+
+(defun keepass-assoc-visible (vis list1)
+  (let ((list1 list1)
+	v)
+    (while list1
+      (if (keepass-subsetp vis (caar list1))
+	  (setq
+	   v (car list1)
+	   list1 nil)
+	(setq list1 (cdr list1))))
+    v))
+
+(defun keepass-get-root (file auth &optional vis)
+  (or 
+   (and-let* 
+       ((vis (or vis '("Title" "UserName" "URL" "Notes")))
+	(l (keepass-assoc-visible
+	    vis keepass-db-cache))
+	(r (assoc-string file (cdr l) t)))
+     (cdr r))
+   (and-let*
+       ((root (keepass-open file auth vis))
+	(vis (or vis '("Title" "UserName" "URL" "Notes")))
+	(l (or (keepass-assoc-visible
+		vis keepass-db-cache)
+	       (let ((nl (list vis)))
+		 (add-to-list 'keepass-db-cache nl)
+		 nl))))
+     (setcdr l (cons (cons file root) 
+		     (cdr l)))
+     root)))
+(defconst keepass-password-regex
+  "^keepass:\\(.*\\.kdbx?\\)\\?\\(.*/[^#]+\\)\\(#[^#]+\\)?")
+
+(defun keepass-hmac-urn (password mech data)
+  (if (string-match keepass-password-regex password)
       (and-let*
-	  ((file (match-string 1 str))
-	   (attrs (match-string 2 str))
-	   (root (if (assoc file keepass-db-cache)
-		     (cdr (assoc file keepass-db-cache))
-		   (keepass-open file t)))
+	  ((file (match-string 1 password))
+	   (attrs (match-string 2 password))
+	   (pwd-fld (list
+		     (and (match-string 3 password)
+			  (substring 
+			   (match-string 3 password) 1))))
+	   (root (keepass-get-root 
+		  file t 
+		  (and (car pwd-fld)
+		       (cons (car pwd-fld)
+			     '("Title" "UserName" "URL" "Notes")))))
 	   (ent (keepass-group-entry
 		 root
 		 (keepass-parse-entry-spec
 		  attrs)))
-	   (digest
-	    (keepass-entry-hmac ent mech data)))
-	;; cache 
-	(unless (assoc file keepass-db-cache)
-	  (add-to-list 'keepass-db-cache
-		       (cons file root)))
+	   (dgst
+	    (keepass-entry-hmac 
+	     ent (car pwd-fld) mech data)))
 	(apply 'concat
 	       (mapcar '(lambda (x) (format "%02x" x))
-		       (string-to-vector digest))))))
+		       (string-to-vector dgst))))))
+
+(defun keepass-login-auth (user password func)
+  (and 
+   (string-match keepass-password-regex password)
+   (and-let*
+       ((file (match-string 1 password))
+	(attrs (match-string 2 password))
+	(pwd-fld (list
+		  (and (match-string 3 password)
+		       (substring 
+			(match-string 3 password) 1))))
+	(root (keepass-get-root 
+	       file t 
+	       (and (car pwd-fld)
+		    (cons (car pwd-fld)
+			  '("Title" "UserName" "URL" "Notes")))))
+	(ent (keepass-group-entry
+	      root
+	      (keepass-parse-entry-spec
+	       attrs)))
+	(password 
+	 (keepass-entry-field
+	  ent 
+	  (car pwd-fld))))
+     (funcall func user password))))
+
+
+(defadvice imap-login-auth
+  (around keepass-imap-login-auth activate)
+  "adviced by keepass."
+  (message "in advice")
+  (let ((ok (keepass-login-auth
+	     imap-username imap-password
+	     (lambda (user password)
+	       (imap-ok-p
+		(imap-send-command-wait
+		 (concat "LOGIN \""
+			 (imap-quote-specials user)
+			 "\" \""
+			 (imap-quote-specials password)
+			 "\"")))))))
+    (if ok
+      (setq ad-return-value ok)	
+    ad-do-it)))
 
 (defadvice rfc2104-hash
   (around keepass-rfc2104-hash-advice activate)
